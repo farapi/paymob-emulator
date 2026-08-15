@@ -9,6 +9,8 @@ import { loadOrInitClock } from "./core/clock-repository.js";
 import { createLogger } from "./core/logger.js";
 import { computeReadiness } from "./core/readiness.js";
 import { readRuntimeEnv } from "./config/env.js";
+import { ensureCredentialsSeeded } from "./core/credentials.js";
+import { syncIntegrations } from "./database/integrations-repository.js";
 
 async function main() {
   const runtime = readRuntimeEnv(process.env);
@@ -21,6 +23,19 @@ async function main() {
 
   const databaseSettings = readSettingsRows(opened.db);
   const config = loadConfig({ env: process.env, databaseSettings });
+
+  const nowIso = new Date().toISOString();
+  ensureCredentialsSeeded(
+    opened.db,
+    {
+      secret_key: config.values.credentials.secretKey,
+      public_key: config.values.credentials.publicKey,
+      api_key: config.values.credentials.apiKey,
+      hmac_secret: config.values.credentials.hmacSecret,
+    },
+    nowIso,
+  );
+  syncIntegrations(opened.db, config.values.integrations, config.values.features.enableLegacy, nowIso);
 
   const clock = loadOrInitClock(
     opened.db,

@@ -3,7 +3,6 @@ import {
   billingDataSchema,
   customerSchema,
   fieldValidationError,
-  incorrectCredentialsError,
   integrationNotFoundError,
   intentionItemSchema,
   unmatchedItemPricesError,
@@ -50,7 +49,6 @@ export interface NormalizedIntentionInput {
 }
 
 export type ValidationFailure =
-  | { ok: false; status: 401; body: typeof incorrectCredentialsError }
   | { ok: false; status: 404; body: typeof integrationNotFoundError }
   | { ok: false; status: 406; body: typeof unmatchedItemPricesError }
   | { ok: false; status: 422; body: ReturnType<typeof fieldValidationError> };

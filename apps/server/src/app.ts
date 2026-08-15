@@ -4,6 +4,8 @@ import type { AppDatabase } from "./database/connect.js";
 import type { Clock } from "./core/clock.js";
 import type { AppLogger } from "./core/logger.js";
 import type { EffectiveConfig } from "./config/loader.js";
+import { parseAllowlist } from "./security/allowlist.js";
+import { registerModernIntentionRoutes } from "./compatibility/modern/intention-routes.js";
 
 export interface ReadinessState {
   ready: boolean;
@@ -20,7 +22,11 @@ export interface AppDependencies {
 }
 
 export function buildApp(deps: AppDependencies) {
-  const app = Fastify({ loggerInstance: deps.logger });
+  const app = Fastify({
+    loggerInstance: deps.logger,
+    routerOptions: { ignoreTrailingSlash: true },
+    bodyLimit: 256 * 1024,
+  });
 
   app.decorate("deps", deps);
 
@@ -45,6 +51,15 @@ export function buildApp(deps: AppDependencies) {
   app.setNotFoundHandler((req, reply) => {
     reply.header("X-Paymob-Simulator", "unsupported-route");
     reply.code(404).send({ detail: "Not Found" });
+  });
+
+  const webhookAllowlist = parseAllowlist(deps.config.values.security.allowedWebhookHosts);
+  registerModernIntentionRoutes(app, {
+    db: deps.db,
+    clock: deps.clock,
+    config: deps.config,
+    webhookAllowlist,
+    publicUrl: deps.config.values.server.publicUrl,
   });
 
   return app;
