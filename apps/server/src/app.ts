@@ -9,6 +9,7 @@ import { parseAllowlist } from "./security/allowlist.js";
 import { registerModernIntentionRoutes } from "./compatibility/modern/intention-routes.js";
 import { registerInquiryRoutes } from "./compatibility/legacy/inquiry-routes.js";
 import { registerCheckoutRoutes } from "./checkout/checkout-routes.js";
+import { registerStaticCheckoutRoutes } from "./checkout/static-routes.js";
 import { registerAuthRoutes } from "./control-plane/auth-routes.js";
 import { registerClockRoutes } from "./control-plane/clock-routes.js";
 import type { SchedulerRunner } from "./core/scheduler-runner.js";
@@ -91,6 +92,8 @@ export function buildApp(deps: AppDependencies) {
     secureCookies: deps.config.values.server.publicUrl.startsWith("https://"),
   });
   registerClockRoutes(app, { auth: authContext, clock: deps.clock, scheduler: deps.scheduler });
+
+  registerStaticCheckoutRoutes(app, { allowedFrameAncestors: deps.config.values.browser.allowedFrameAncestors });
 
   return app;
 }

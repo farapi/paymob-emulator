@@ -8,7 +8,6 @@ import { getActiveCredential } from "../core/credentials.js";
 import { findIntentionByClientSecret } from "../core/intention-service.js";
 import {
   createCheckoutSession,
-  findLatestCheckoutSessionForIntention,
   getCheckoutSession,
   touchHeartbeat,
   verifyTicket,
@@ -52,12 +51,10 @@ export function registerCheckoutRoutes(app: AnyFastifyInstance, deps: CheckoutRo
       return reply.code(410).send({ detail: "intention expired" });
     }
 
-    const existing = findLatestCheckoutSessionForIntention(deps.db, intention.id);
-    if (existing && new Date(existing.expiresAt).getTime() > now.getTime()) {
-      touchHeartbeat(deps.db, existing.id, now);
-      return reply.code(200).send({ sessionId: existing.id, reused: true });
-    }
-
+    // Every render creates its own session/ticket (spec 10.4): two tabs for
+    // the same intention each get their own session and both receive
+    // published browser actions, but only the first atomic submit creates a
+    // transaction.
     const expiresAt = new Date(now.getTime() + SESSION_TTL_MS);
     const created = createCheckoutSession(
       deps.db,
