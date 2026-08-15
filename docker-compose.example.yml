@@ -1,0 +1,37 @@
+services:
+  paymob-simulator:
+    image: ghcr.io/OWNER/paymob-simulator:latest
+    build: .
+    ports:
+      - "127.0.0.1:8080:8080"
+    volumes:
+      - paymob-simulator-data:/data
+      - ./config/config.example.yaml:/config/config.yaml:ro
+    environment:
+      SIM_CONFIG_FILE: /config/config.yaml
+      SIM_PUBLIC_URL: http://localhost:8080
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    healthcheck:
+      test: ["CMD", "node", "/app/apps/server/healthcheck.mjs"]
+      interval: 5s
+      timeout: 2s
+      retries: 10
+
+  demo-merchant:
+    build: ./demo-merchant
+    ports:
+      - "127.0.0.1:3000:3000"
+    environment:
+      PAYMOB_BASE_URL: http://paymob-simulator:8080
+      PAYMOB_PUBLIC_BASE_URL: http://localhost:8080
+      PAYMOB_SECRET_KEY: sk_sim_local
+      PAYMOB_PUBLIC_KEY: pk_sim_local
+      PAYMOB_API_KEY: api_sim_local
+      PAYMOB_HMAC_SECRET: sim_hmac_secret
+    depends_on:
+      paymob-simulator:
+        condition: service_healthy
+
+volumes:
+  paymob-simulator-data:

@@ -3,17 +3,17 @@
   "version": "0.1.0",
   "private": true,
   "type": "module",
-  "main": "./src/index.ts",
-  "types": "./src/index.ts",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
   "exports": {
-    ".": "./src/index.ts",
-    "./cards": "./src/cards.ts",
-    "./states": "./src/states.ts",
-    "./duration": "./src/duration.ts",
-    "./intention": "./src/intention.ts",
-    "./transaction": "./src/transaction.ts",
-    "./hmac": "./src/hmac.ts",
-    "./projection": "./src/projection.ts"
+    ".": { "types": "./dist/index.d.ts", "default": "./dist/index.js" },
+    "./cards": { "types": "./dist/cards.d.ts", "default": "./dist/cards.js" },
+    "./states": { "types": "./dist/states.d.ts", "default": "./dist/states.js" },
+    "./duration": { "types": "./dist/duration.d.ts", "default": "./dist/duration.js" },
+    "./intention": { "types": "./dist/intention.d.ts", "default": "./dist/intention.js" },
+    "./transaction": { "types": "./dist/transaction.d.ts", "default": "./dist/transaction.js" },
+    "./hmac": { "types": "./dist/hmac.d.ts", "default": "./dist/hmac.js" },
+    "./projection": { "types": "./dist/projection.d.ts", "default": "./dist/projection.js" }
   },
   "scripts": {
     "typecheck": "tsc --noEmit",

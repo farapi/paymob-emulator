@@ -1,0 +1,7 @@
+{
+  "name": "@paymob-simulator/test-fixtures",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Versioned provider request/response JSON fixtures with golden HMAC signatures, checked in per spec section 14.3/22.5.",
+  "type": "module"
+}

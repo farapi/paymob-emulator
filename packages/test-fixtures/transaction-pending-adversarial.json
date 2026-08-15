@@ -1,0 +1,11 @@
+{
+  "description": "Adversarial pending projection (never a claim about normal Paymob behavior, spec 12.3/13.3): pending=true, success=false, error_occured=false, data.message=\"Pending\", canonical:false in simulator metadata (metadata itself is never part of the outbound body).",
+  "secret": "sim_hmac_secret",
+  "changedFieldsFromSuccess": {
+    "obj.pending": true,
+    "obj.success": false,
+    "obj.error_occured": false,
+    "obj.data.message": "Pending"
+  },
+  "hmac": "1f8f22b11fd177b0bdbd8052e0aafce007ebe4486252daf04be26f9fe2c1de68e22f169d4e934313c372eae8690df341c8e25677cc1a6906ac4613bb0059fda4"
+}

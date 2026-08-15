@@ -1,0 +1,57 @@
+version: 1
+
+server:
+  publicUrl: http://localhost:8080
+  port: 8080
+
+credentials:
+  secretKey: sk_sim_local
+  publicKey: pk_sim_local
+  apiKey: api_sim_local
+  hmacSecret: sim_hmac_secret
+
+defaults:
+  currency: EGP
+  scenario: success-immediate
+  notificationUrl: http://host.docker.internal:3000/webhooks/paymob
+  redirectionUrl: http://localhost:3000/payment/result
+  redirectMode: paymob_query_order
+  validationMode: realistic
+
+integrations:
+  - id: 1001
+    iframeId: 2001
+    name: Local cards
+    paymentMethod: card
+    sourceSubtype: Visa
+    iframeCompletionMode: post_message_and_redirect
+    notificationUrl: http://host.docker.internal:3000/webhooks/paymob
+    redirectionUrl: http://localhost:3000/payment/result
+
+delivery:
+  requestTimeout: 10s
+  retryOnTransportError: true
+  retryOnStatuses: [408, 425, 429, 500, 502, 503, 504]
+  retryIntervals: [5s, 30s, 2m]
+  maxAttempts: 4
+
+browser:
+  allowedFrameAncestors:
+    - http://localhost:3000
+    - http://localhost:5173
+  allowedRedirectOrigins:
+    - http://localhost:3000
+    - http://localhost:5173
+
+security:
+  allowedWebhookHosts:
+    - backend
+    - demo-merchant
+    - host.docker.internal
+    - localhost
+    - 127.0.0.1
+  allowPrivateNetworks: true
+  adminToken: null
+
+clock:
+  mode: real

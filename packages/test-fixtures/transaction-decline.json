@@ -1,0 +1,10 @@
+{
+  "description": "Decline projection: same fixture as transaction-success.json with success=false, error_occured=true, data.message=\"Declined\" (spec 14.3, 13.3).",
+  "secret": "sim_hmac_secret",
+  "changedFieldsFromSuccess": {
+    "obj.success": false,
+    "obj.error_occured": true,
+    "obj.data.message": "Declined"
+  },
+  "hmac": "3a2ddb6a531a6e457b0ad2a8bb0d535fc87ffc97d9f8180b3037a2635c0ce380a77c8d4f9cd2840374ffd3e4c1103a75ff293b28b3643caaaf9a6f6891fb1ddc"
+}
