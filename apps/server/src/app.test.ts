@@ -1,47 +1,31 @@
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
-import { buildApp } from "./app.js";
-import { openDatabase, type OpenedDatabase } from "./database/connect.js";
-import { runMigrations } from "./database/migrate.js";
-import { RealClock } from "./core/clock.js";
-import { createLogger } from "./core/logger.js";
-import { loadConfig } from "./config/loader.js";
+import { buildTestApp, type TestApp } from "./test-helpers/build-test-app.js";
 
 describe("buildApp", () => {
-  let opened: OpenedDatabase;
-  let app: ReturnType<typeof buildApp>;
+  let testApp: TestApp;
 
   beforeEach(() => {
-    opened = openDatabase({ filePath: ":memory:" });
-    runMigrations(opened);
-    app = buildApp({
-      db: opened.db,
-      dbHealthCheck: opened.healthCheck,
-      config: loadConfig({ env: {} }),
-      clock: new RealClock(),
-      logger: createLogger("silent"),
-      getReadiness: () => ({ ready: false, reason: "setup_required" }),
-    });
+    testApp = buildTestApp({ ready: false });
   });
 
   afterEach(async () => {
-    await app.close();
-    opened.close();
+    await testApp.close();
   });
 
   it("reports healthy once the database is reachable", async () => {
-    const res = await app.inject({ method: "GET", url: "/healthz" });
+    const res = await testApp.app.inject({ method: "GET", url: "/healthz" });
     expect(res.statusCode).toBe(200);
     expect(res.json()).toEqual({ status: "ok" });
   });
 
-  it("reports not ready with the setup_required reason before setup", async () => {
-    const res = await app.inject({ method: "GET", url: "/readyz" });
+  it("reports not ready before setup", async () => {
+    const res = await testApp.app.inject({ method: "GET", url: "/readyz" });
     expect(res.statusCode).toBe(503);
-    expect(res.json()).toEqual({ ready: false, reason: "setup_required" });
+    expect(res.json()).toEqual({ ready: false, reason: "not_ready" });
   });
 
   it("tags unknown routes with the simulator diagnostic header and never proxies", async () => {
-    const res = await app.inject({ method: "GET", url: "/does/not/exist" });
+    const res = await testApp.app.inject({ method: "GET", url: "/does/not/exist" });
     expect(res.statusCode).toBe(404);
     expect(res.headers["x-paymob-simulator"]).toBe("unsupported-route");
   });

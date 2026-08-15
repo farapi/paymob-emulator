@@ -1,4 +1,6 @@
 import { resolve } from "node:path";
+import { randomUUID } from "node:crypto";
+import { parseDuration } from "@paymob-simulator/contracts";
 import { buildApp } from "./app.js";
 import { loadConfig } from "./config/loader.js";
 import { openDatabase } from "./database/connect.js";
@@ -9,9 +11,13 @@ import { loadOrInitClock } from "./core/clock-repository.js";
 import { createLogger } from "./core/logger.js";
 import { computeReadiness } from "./core/readiness.js";
 import { readRuntimeEnv } from "./config/env.js";
-import { ensureCredentialsSeeded } from "./core/credentials.js";
+import { ensureCredentialsSeeded, getActiveCredential, getCredentialByVersion } from "./core/credentials.js";
 import { syncIntegrations } from "./database/integrations-repository.js";
 import { syncBuiltInScenarios } from "./core/scenario-registry.js";
+import { ensureBootstrapToken } from "./core/bootstrap.js";
+import { SchedulerRunner } from "./core/scheduler-runner.js";
+import { parseAllowlist } from "./security/allowlist.js";
+import { nodeDnsResolver } from "./security/dns-pin.js";
 
 async function main() {
   const runtime = readRuntimeEnv(process.env);
@@ -39,6 +45,17 @@ async function main() {
   syncIntegrations(opened.db, config.values.integrations, config.values.features.enableLegacy, nowIso);
   syncBuiltInScenarios(opened.db, nowIso);
 
+  const bootstrapToken = await ensureBootstrapToken(opened.db, nowIso);
+  if (bootstrapToken) {
+    // Printed once, plaintext, per spec 8.4 step 1. Never logged through the
+    // structured (redacted) logger since that would defeat "printed once".
+    console.log("\n=================================================================");
+    console.log(" Paymob Simulator first-run bootstrap token (shown only once):");
+    console.log(` ${bootstrapToken}`);
+    console.log(" Open the setup wizard and paste this token to continue.");
+    console.log("=================================================================\n");
+  }
+
   const clock = loadOrInitClock(
     opened.db,
     config.values.clock.mode,
@@ -46,12 +63,41 @@ async function main() {
     () => new Date().toISOString(),
   );
 
+  const webhookAllowlist = parseAllowlist(config.values.security.allowedWebhookHosts);
+  const retryIntervalsMs = config.values.delivery.retryIntervals.map((s) => parseDuration(s));
+  const requestTimeoutMs = parseDuration(config.values.delivery.requestTimeout);
+
+  const scheduler = new SchedulerRunner({
+    db: opened.db,
+    raw: opened.raw,
+    clock,
+    workerOwnerId: randomUUID(),
+    leaseDurationMs: 30_000,
+    getHmacSecretForVersion: (version) =>
+      getCredentialByVersion(opened.db, "hmac_secret", version) ?? getActiveCredential(opened.db, "hmac_secret").value,
+    allowlist: webhookAllowlist,
+    allowPrivateNetworks: config.values.security.allowPrivateNetworks,
+    resolver: nodeDnsResolver,
+    requestTimeoutMs,
+    retryPolicy: {
+      retryOnTransportError: config.values.delivery.retryOnTransportError,
+      retryOnStatuses: config.values.delivery.retryOnStatuses,
+      intervalsMs: retryIntervalsMs,
+      maxAttempts: config.values.delivery.maxAttempts,
+    },
+    defaultRedirectMode: config.values.defaults.redirectMode,
+  });
+  scheduler.start();
+
   const app = buildApp({
     db: opened.db,
+    raw: opened.raw,
     dbHealthCheck: opened.healthCheck,
     config,
     clock,
     logger,
+    scheduler,
+    adminTokenEnv: process.env.SIM_ADMIN_TOKEN,
     getReadiness: () =>
       computeReadiness({
         db: opened.db,
@@ -66,6 +112,7 @@ async function main() {
 
   const shutdown = async (signal: string) => {
     logger.info({ signal }, "shutting down");
+    scheduler.stop();
     await app.close();
     opened.close();
     process.exit(0);

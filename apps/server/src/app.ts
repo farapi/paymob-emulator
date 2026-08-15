@@ -1,11 +1,17 @@
 import Fastify from "fastify";
 import cookie from "@fastify/cookie";
+import type Database from "better-sqlite3";
 import type { AppDatabase } from "./database/connect.js";
 import type { Clock } from "./core/clock.js";
 import type { AppLogger } from "./core/logger.js";
 import type { EffectiveConfig } from "./config/loader.js";
 import { parseAllowlist } from "./security/allowlist.js";
 import { registerModernIntentionRoutes } from "./compatibility/modern/intention-routes.js";
+import { registerInquiryRoutes } from "./compatibility/legacy/inquiry-routes.js";
+import { registerCheckoutRoutes } from "./checkout/checkout-routes.js";
+import { registerAuthRoutes } from "./control-plane/auth-routes.js";
+import { registerClockRoutes } from "./control-plane/clock-routes.js";
+import type { SchedulerRunner } from "./core/scheduler-runner.js";
 
 export interface ReadinessState {
   ready: boolean;
@@ -14,11 +20,14 @@ export interface ReadinessState {
 
 export interface AppDependencies {
   db: AppDatabase;
+  raw: Database.Database;
   dbHealthCheck: () => boolean;
   config: EffectiveConfig;
   clock: Clock;
   logger: AppLogger;
   getReadiness: () => ReadinessState;
+  scheduler: SchedulerRunner;
+  adminTokenEnv: string | undefined;
 }
 
 export function buildApp(deps: AppDependencies) {
@@ -61,6 +70,27 @@ export function buildApp(deps: AppDependencies) {
     webhookAllowlist,
     publicUrl: deps.config.values.server.publicUrl,
   });
+
+  registerInquiryRoutes(app, { db: deps.db, clock: deps.clock });
+
+  const defaultIntegrationId = deps.config.values.integrations[0]?.id ?? 1001;
+  registerCheckoutRoutes(app, {
+    db: deps.db,
+    raw: deps.raw,
+    clock: deps.clock,
+    clockMode: deps.config.values.clock.mode,
+    defaultIntegrationId,
+    scheduler: deps.scheduler,
+  });
+
+  const authContext = { db: deps.db, clock: deps.clock, adminTokenEnv: deps.adminTokenEnv };
+  registerAuthRoutes(app, {
+    db: deps.db,
+    clock: deps.clock,
+    adminTokenEnv: deps.adminTokenEnv,
+    secureCookies: deps.config.values.server.publicUrl.startsWith("https://"),
+  });
+  registerClockRoutes(app, { auth: authContext, clock: deps.clock, scheduler: deps.scheduler });
 
   return app;
 }
