@@ -1,0 +1,33 @@
+{
+  "name": "paymob-simulator",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "license": "Apache-2.0",
+  "engines": {
+    "node": ">=22"
+  },
+  "packageManager": "pnpm@11.9.0",
+  "scripts": {
+    "lint": "eslint .",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
+    "typecheck": "pnpm -r run typecheck",
+    "build": "pnpm -r run build",
+    "test": "pnpm -r run test",
+    "test:integration": "pnpm --filter @paymob-simulator/server run test:integration",
+    "test:e2e": "pnpm --filter @paymob-simulator/e2e run test",
+    "dev:server": "pnpm --filter @paymob-simulator/server run dev",
+    "dev:web": "pnpm --filter @paymob-simulator/web run dev",
+    "db:generate": "pnpm --filter @paymob-simulator/server run db:generate",
+    "db:migrate": "pnpm --filter @paymob-simulator/server run db:migrate"
+  },
+  "devDependencies": {
+    "@eslint/js": "^9.17.0",
+    "eslint": "^9.17.0",
+    "eslint-config-prettier": "^9.1.0",
+    "prettier": "^3.4.2",
+    "typescript": "^5.7.2",
+    "typescript-eslint": "^8.18.0"
+  }
+}
