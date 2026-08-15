@@ -1,4 +1,9 @@
 import { useState } from "react";
+import { Lock01 } from "@untitledui/icons";
+import { Input } from "@/components/base/input/input";
+import { Button } from "@/components/base/buttons/button";
+import { RadioButton, RadioGroup } from "@/components/base/radio-buttons/radio-buttons";
+import { BadgeWithDot } from "@/components/base/badges/badges";
 import { AdminApiError, bootstrap, login, setCsrfToken } from "./api.js";
 
 export function LoginPage(props: { onAuthenticated: (csrfToken: string) => void }) {
@@ -25,32 +30,41 @@ export function LoginPage(props: { onAuthenticated: (csrfToken: string) => void 
   };
 
   return (
-    <main className="admin-login">
-      <div className="checkout__banner">SIMULATOR ADMIN -- no real payment data</div>
-      <form className="admin-login__form" onSubmit={(e) => void submit(e)}>
-        <h1>Sign in</h1>
-        <div className="admin-login__mode">
-          <label>
-            <input type="radio" checked={mode === "bootstrap"} onChange={() => setMode("bootstrap")} />
-            First-run bootstrap token (printed once in the server logs)
-          </label>
-          <label>
-            <input type="radio" checked={mode === "login"} onChange={() => setMode("login")} />
-            Admin recovery token (SIM_ADMIN_TOKEN)
-          </label>
+    <main className="flex min-h-screen flex-col items-center justify-center gap-6 bg-secondary px-4">
+      <BadgeWithDot type="pill-color" size="md" color="warning">
+        Simulator admin -- no real payment data
+      </BadgeWithDot>
+      <form
+        onSubmit={(e) => void submit(e)}
+        className="flex w-full max-w-sm flex-col gap-5 rounded-2xl border border-secondary bg-primary p-6 shadow-sm"
+      >
+        <div className="flex flex-col items-center gap-2 text-center">
+          <div className="flex size-11 items-center justify-center rounded-full bg-brand-secondary">
+            <Lock01 className="size-5 text-brand-secondary" />
+          </div>
+          <h1 className="text-lg font-semibold text-primary">Sign in</h1>
         </div>
-        <input
+
+        <RadioGroup value={mode} onChange={(v) => setMode(v as "bootstrap" | "login")} className="gap-3">
+          <RadioButton value="bootstrap" label="First-run bootstrap token" hint="Printed once in the server logs" />
+          <RadioButton value="login" label="Admin recovery token" hint="SIM_ADMIN_TOKEN" />
+        </RadioGroup>
+
+        <Input
           type="password"
+          isRequired
           autoComplete="off"
+          label="Token"
           placeholder="Paste token"
           value={token}
-          onChange={(e) => setToken(e.target.value)}
-          required
+          onChange={setToken}
         />
-        {error && <p className="checkout__error">{error}</p>}
-        <button type="submit" disabled={busy || token.length === 0}>
-          {busy ? "Signing in..." : "Sign in"}
-        </button>
+
+        {error && <p className="text-sm text-error-primary">{error}</p>}
+
+        <Button type="submit" size="md" color="primary" isDisabled={busy || token.length === 0} isLoading={busy}>
+          Sign in
+        </Button>
       </form>
     </main>
   );

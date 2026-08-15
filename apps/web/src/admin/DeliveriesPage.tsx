@@ -1,47 +1,68 @@
 import { useQuery } from "@tanstack/react-query";
-import { Link } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
+import { Table, TableCard } from "@/components/application/table/table";
+import { BadgeWithDot } from "@/components/base/badges/badges";
+import type { BadgeColors } from "@/components/base/badges/badge-types";
 import { listDeliveries } from "./api.js";
 
+const STATUS_COLOR: Record<string, BadgeColors> = {
+  delivered: "success",
+  scheduled: "warning",
+  retry_scheduled: "warning",
+  exhausted: "error",
+  failed: "error",
+  cancelled: "gray",
+};
+
 export function DeliveriesPage() {
+  const navigate = useNavigate();
   const query = useQuery({ queryKey: ["admin-deliveries"], queryFn: listDeliveries, refetchInterval: 5000 });
 
-  if (query.isLoading) return <p>Loading...</p>;
-  if (query.isError) return <p className="checkout__error">Failed to load deliveries.</p>;
-
   return (
-    <section>
-      <h1>Deliveries</h1>
-      <table className="admin-table">
-        <thead>
-          <tr>
-            <th>ID</th>
-            <th>Type</th>
-            <th>Status</th>
-            <th>Target</th>
-            <th>Created</th>
-          </tr>
-        </thead>
-        <tbody>
-          {query.data?.data.map((d) => (
-            <tr key={d.id}>
-              <td>
-                <Link to={`/__simulator/dashboard/deliveries/${d.id}`}>{d.id.slice(0, 12)}</Link>
-              </td>
-              <td>{d.eventType}</td>
-              <td>
-                <span className={`admin-state admin-state--${d.status}`}>{d.status}</span>
-              </td>
-              <td className="admin-truncate">{d.targetUrl}</td>
-              <td>{d.createdAt}</td>
-            </tr>
-          ))}
-          {query.data?.data.length === 0 && (
-            <tr>
-              <td colSpan={5}>No deliveries yet.</td>
-            </tr>
-          )}
-        </tbody>
-      </table>
+    <section className="flex flex-col gap-5">
+      <h1 className="text-display-xs font-semibold text-primary">Deliveries</h1>
+
+      <TableCard.Root>
+        {query.isError && <p className="p-5 text-sm text-error-primary">Failed to load deliveries.</p>}
+        {!query.isError && (
+          <Table aria-label="Deliveries">
+            <Table.Header>
+              <Table.Head id="id" label="ID" isRowHeader />
+              <Table.Head id="type" label="Type" />
+              <Table.Head id="status" label="Status" />
+              <Table.Head id="target" label="Target" />
+              <Table.Head id="created" label="Created" />
+            </Table.Header>
+            <Table.Body>
+              {(query.data?.data ?? []).map((d) => (
+                <Table.Row
+                  key={d.id}
+                  id={d.id}
+                  className="cursor-pointer"
+                  onAction={() => navigate(`/__simulator/dashboard/deliveries/${d.id}`)}
+                >
+                  <Table.Cell>
+                    <span className="font-medium text-primary">{d.id.slice(0, 12)}</span>
+                  </Table.Cell>
+                  <Table.Cell>{d.eventType}</Table.Cell>
+                  <Table.Cell>
+                    <BadgeWithDot type="pill-color" size="sm" color={STATUS_COLOR[d.status] ?? "gray"}>
+                      {d.status}
+                    </BadgeWithDot>
+                  </Table.Cell>
+                  <Table.Cell>
+                    <span className="block max-w-80 truncate">{d.targetUrl}</span>
+                  </Table.Cell>
+                  <Table.Cell>{d.createdAt}</Table.Cell>
+                </Table.Row>
+              ))}
+            </Table.Body>
+          </Table>
+        )}
+        {!query.isError && query.data?.data.length === 0 && (
+          <p className="p-5 text-sm text-tertiary">No deliveries yet.</p>
+        )}
+      </TableCard.Root>
     </section>
   );
 }

@@ -7,7 +7,16 @@
     "moduleResolution": "Bundler",
     "jsx": "react-jsx",
     "noEmit": true,
-    "types": ["vite/client", "node"]
+    "types": ["vite/client", "node"],
+    // Untitled UI's copy-paste component source (src/components/**) isn't
+    // written against this stricter flag; overriding it off here (rather
+    // than editing dozens of vendored files) keeps components upgradeable
+    // via `untitledui upgrade` with a clean diff.
+    "exactOptionalPropertyTypes": false,
+    "baseUrl": ".",
+    "paths": {
+      "@/*": ["./src/*"]
+    }
   },
   "include": ["src"]
 }

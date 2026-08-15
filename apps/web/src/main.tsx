@@ -5,6 +5,7 @@ import { BrowserRouter } from "react-router-dom";
 import { queryClient } from "./shared/query-client.js";
 import { App } from "./App.js";
 import "./styles.css";
+import "./styles/globals.css";
 
 const rootElement = document.getElementById("root");
 if (!rootElement) throw new Error("missing #root element");
