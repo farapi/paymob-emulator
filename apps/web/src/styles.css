@@ -1,5 +1,5 @@
 :root {
-  color-scheme: light dark;
+  color-scheme: light;
   --bg: #f4f5f7;
   --card-bg: #ffffff;
   --text: #1a1d21;
@@ -85,6 +85,8 @@ body {
   border: 1px solid var(--border);
   border-radius: 8px;
   font-size: 1rem;
+  background: var(--card-bg);
+  color: var(--text);
 }
 
 .checkout__row {
@@ -112,6 +114,7 @@ body {
 
 .checkout__cancel {
   background: transparent;
+  color: var(--text);
   border: 1px solid var(--border);
   border-radius: 8px;
   padding: 10px;
@@ -176,6 +179,7 @@ body {
 .scenario-catalog__actions button {
   border: 1px solid var(--border);
   background: var(--card-bg);
+  color: var(--text);
   border-radius: 6px;
   padding: 4px 8px;
   font-size: 0.75rem;
