@@ -39,11 +39,11 @@ export interface CardTokenHmacFields {
   token: string;
 }
 
-type NormalizableValue = string | number | boolean | null | undefined;
+export type NormalizableValue = string | number | boolean | null | undefined;
 
 // Boolean -> lowercase true/false. Number -> base-10 string. String -> unchanged.
 // null/undefined -> empty string (only legitimate for genuinely optional fields).
-function normalize(value: NormalizableValue): string {
+export function normalizeHmacValue(value: NormalizableValue): string {
   if (value === null || value === undefined) return "";
   if (typeof value === "boolean") return value ? "true" : "false";
   if (typeof value === "number") return String(value);
@@ -75,7 +75,7 @@ export function transactionHmacConcatenation(f: TransactionHmacFields): string {
       f.success,
     ] satisfies NormalizableValue[]
   )
-    .map(normalize)
+    .map(normalizeHmacValue)
     .join("");
 }
 
@@ -96,7 +96,7 @@ export function cardTokenHmacConcatenation(f: CardTokenHmacFields): string {
       f.token,
     ] satisfies NormalizableValue[]
   )
-    .map(normalize)
+    .map(normalizeHmacValue)
     .join("");
 }
 
