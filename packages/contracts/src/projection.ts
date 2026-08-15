@@ -25,7 +25,7 @@ export interface ProjectedPaymobFlags {
 export interface ProjectionContext {
   originalAmountCents: number;
   refundedAmountCents?: number;
-  declineMessage?: string;
+  declineMessage?: string | undefined;
 }
 
 const BASE_FALSE = {

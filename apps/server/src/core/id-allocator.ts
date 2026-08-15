@@ -14,6 +14,15 @@ export const ID_COUNTER_BASES = {
 
 export type IdCounterKey = keyof typeof ID_COUNTER_BASES;
 
+/**
+ * `profile_id`/`owner` identify the simulator's single merchant profile, not
+ * a per-transaction counter -- the golden fixture (spec 14.2) uses the same
+ * value (500001) for both across every transaction. Only one merchant
+ * profile exists per simulator instance, so this is a fixed constant rather
+ * than an allocateId() call.
+ */
+export const SIMULATOR_PROFILE_ID = ID_COUNTER_BASES.owner_profile;
+
 export function ensureIdCounters(raw: Database.Database): void {
   const insert = raw.prepare(
     "insert into id_counters (key, next_value) values (?, ?) on conflict(key) do nothing",
