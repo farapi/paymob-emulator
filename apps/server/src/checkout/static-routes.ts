@@ -27,35 +27,56 @@ function checkoutCsp(allowedFrameAncestors: readonly string[]): string {
   ].join("; ");
 }
 
+// Admin pages must never be embeddable, regardless of the checkout
+// frame-ancestors allowlist (spec 17.2, 20.1).
+const ADMIN_CSP = [
+  "default-src 'self'",
+  "script-src 'self'",
+  "style-src 'self' 'unsafe-inline'",
+  "img-src 'self' data:",
+  "connect-src 'self'",
+  "font-src 'self'",
+  "frame-ancestors 'none'",
+  "base-uri 'none'",
+].join("; ");
+
 /**
- * Serves the built Unified Checkout SPA under /unifiedcheckout/ with the
- * restrictive checkout-surface CSP from spec 20.5 (no external fonts,
- * analytics, images, or scripts; frame-ancestors limited to configured
- * merchant origins; no-referrer).
+ * Serves the built React SPA (checkout under /unifiedcheckout/, admin
+ * dashboard under /__simulator/dashboard/) with the restrictive per-surface
+ * CSPs from spec 20.5/17.2/20.1. Vite's `base: "/"` means both entry pages
+ * reference the same root-relative /assets/*, served once here.
  */
 export function registerStaticCheckoutRoutes(app: AnyFastifyInstance, deps: StaticCheckoutDeps): void {
   if (!existsSync(WEB_DIST)) {
-    app.log.warn(`apps/web is not built (missing ${WEB_DIST}); /unifiedcheckout/ will 404 until "pnpm build" runs`);
+    app.log.warn(`apps/web is not built (missing ${WEB_DIST}); the checkout page and dashboard will 404 until "pnpm build" runs`);
     return;
   }
 
   app.register(staticPlugin, {
-    root: WEB_DIST,
-    prefix: "/unifiedcheckout/",
-    index: false,
+    root: resolve(WEB_DIST, "assets"),
+    prefix: "/assets/",
     decorateReply: false,
   });
 
   const indexHtml = readFileSync(resolve(WEB_DIST, "index.html"), "utf-8");
-  app.get("/unifiedcheckout/", async (_req, reply) => {
-    return reply.type("text/html").send(indexHtml);
-  });
+  const serveSpa = async (_req: unknown, reply: { type: (t: string) => { send: (b: string) => unknown } }) =>
+    reply.type("text/html").send(indexHtml);
+
+  app.get("/unifiedcheckout/", serveSpa);
+  app.get("/unifiedcheckout/*", serveSpa);
+  app.get("/__simulator/dashboard/", serveSpa);
+  app.get("/__simulator/dashboard/*", serveSpa);
 
   app.addHook("onSend", async (req, reply, payload) => {
     if (req.url.startsWith("/unifiedcheckout/") || req.url.startsWith("/embed/")) {
       reply.header("Content-Security-Policy", checkoutCsp(deps.allowedFrameAncestors));
       reply.header("Referrer-Policy", "no-referrer");
       reply.header("X-Content-Type-Options", "nosniff");
+    } else if (req.url.startsWith("/__simulator/dashboard/")) {
+      reply.header("Content-Security-Policy", ADMIN_CSP);
+      reply.header("Referrer-Policy", "no-referrer");
+      reply.header("X-Content-Type-Options", "nosniff");
+      reply.header("X-Frame-Options", "DENY");
     }
     return payload;
   });

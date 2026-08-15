@@ -120,11 +120,21 @@ export type AdminAuthResult =
   | { ok: true; method: "session"; sessionId: string }
   | { ok: false; status: 401 | 403; code: string };
 
-/** Authenticates a control-plane request: bearer token (no CSRF) or session cookie + CSRF header. */
+const SAFE_METHODS = new Set(["GET", "HEAD", "OPTIONS"]);
+
+/**
+ * Authenticates a control-plane request: bearer token (no CSRF) or session
+ * cookie. CSRF is only required for session mutations (spec 16: "Session
+ * mutations require X-CSRF-Token...") -- a safe read-only method (GET/HEAD/
+ * OPTIONS) authenticated via session cookie does not need it, matching the
+ * standard CSRF threat model (a forged cross-site GET has no side effects
+ * to protect against here).
+ */
 export function authenticateAdminRequest(
   ctx: AuthContext,
   headers: { authorization?: string | undefined; cookie?: string | undefined; "x-csrf-token"?: string | undefined },
   sessionTokenFromCookie: string | undefined,
+  method = "GET",
 ): AdminAuthResult {
   const bearerMatch = /^Bearer\s+(.+)$/.exec(headers.authorization ?? "");
   if (bearerMatch && ctx.adminTokenEnv && constantTimeEqual(bearerMatch[1] as string, ctx.adminTokenEnv)) {
@@ -138,7 +148,7 @@ export function authenticateAdminRequest(
   if (!session) {
     return { ok: false, status: 401, code: "unauthenticated" };
   }
-  if (headers["x-csrf-token"] !== session.csrfToken) {
+  if (!SAFE_METHODS.has(method.toUpperCase()) && headers["x-csrf-token"] !== session.csrfToken) {
     return { ok: false, status: 403, code: "csrf_failed" };
   }
   return { ok: true, method: "session", sessionId: session.id };

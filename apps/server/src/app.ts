@@ -16,6 +16,7 @@ import { registerExpectationRoutes } from "./control-plane/expectations-routes.j
 import { registerIntentionsControlRoutes } from "./control-plane/intentions-routes.js";
 import { registerTransactionsControlRoutes } from "./control-plane/transactions-routes.js";
 import { registerDeliveriesControlRoutes } from "./control-plane/deliveries-routes.js";
+import { registerSettingsRoutes } from "./control-plane/settings-routes.js";
 import { registerLegacyOperationsRoutes } from "./compatibility/legacy/operations-routes.js";
 import type { SchedulerRunner } from "./core/scheduler-runner.js";
 import type { RetryPolicy } from "./core/webhook-delivery.js";
@@ -144,6 +145,8 @@ export function buildApp(deps: AppDependencies) {
     requestTimeoutMs: deps.requestTimeoutMs,
     retryPolicy: deps.retryPolicy,
   });
+
+  registerSettingsRoutes(app, { auth: authContext, config: deps.config });
 
   registerStaticCheckoutRoutes(app, { allowedFrameAncestors: deps.config.values.browser.allowedFrameAncestors });
 

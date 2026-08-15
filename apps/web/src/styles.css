@@ -185,3 +185,194 @@ body {
   font-size: 0.75rem;
   cursor: pointer;
 }
+
+/* Admin dashboard */
+
+.admin-login {
+  max-width: 420px;
+  margin: 60px auto;
+  padding: 0 16px;
+}
+
+.admin-login__form {
+  background: var(--card-bg);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.admin-login__mode {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  font-size: 0.85rem;
+  color: var(--muted);
+}
+
+.admin-login__form input[type="password"] {
+  padding: 10px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--card-bg);
+  color: var(--text);
+}
+
+.admin-login__form button {
+  background: var(--accent);
+  color: white;
+  border: none;
+  border-radius: 8px;
+  padding: 10px;
+  cursor: pointer;
+}
+
+.admin {
+  max-width: 1100px;
+  margin: 0 auto;
+  padding: 16px;
+}
+
+.admin__header {
+  margin-bottom: 12px;
+}
+
+.admin__nav {
+  display: flex;
+  gap: 16px;
+  align-items: center;
+  border-bottom: 1px solid var(--border);
+  padding-bottom: 10px;
+  margin-bottom: 20px;
+}
+
+.admin__nav a {
+  color: var(--muted);
+  text-decoration: none;
+  font-weight: 600;
+  font-size: 0.9rem;
+}
+
+.admin__nav a.active {
+  color: var(--accent);
+}
+
+.admin__logout {
+  margin-left: auto;
+  background: none;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 6px 10px;
+  cursor: pointer;
+  color: var(--text);
+}
+
+.admin-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.85rem;
+}
+
+.admin-table th,
+.admin-table td {
+  text-align: left;
+  padding: 8px 6px;
+  border-bottom: 1px solid var(--border);
+}
+
+.admin-table a {
+  color: var(--accent);
+  text-decoration: none;
+}
+
+.admin-truncate {
+  max-width: 320px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.admin-detail {
+  display: grid;
+  grid-template-columns: 160px 1fr;
+  gap: 6px 12px;
+  margin-bottom: 20px;
+}
+
+.admin-detail dt {
+  color: var(--muted);
+  font-size: 0.85rem;
+}
+
+.admin-detail dd {
+  margin: 0;
+}
+
+.admin-actions {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  margin-bottom: 12px;
+}
+
+.admin-actions button,
+.admin-actions input {
+  padding: 8px 12px;
+  border-radius: 6px;
+  border: 1px solid var(--border);
+  cursor: pointer;
+  background: var(--card-bg);
+  color: var(--text);
+}
+
+.admin-json {
+  background: #f4f5f7;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 12px;
+  overflow-x: auto;
+  font-size: 0.75rem;
+  max-height: 400px;
+}
+
+.admin-badge {
+  display: inline-block;
+  font-size: 0.7rem;
+  padding: 2px 6px;
+  border-radius: 4px;
+  background: var(--border);
+  color: var(--text);
+  margin-left: 6px;
+}
+
+.admin-badge--danger {
+  background: #fbdada;
+  color: var(--danger);
+}
+
+.admin-state {
+  font-weight: 600;
+  text-transform: capitalize;
+}
+
+.admin-state--succeeded,
+.admin-state--delivered,
+.admin-state--captured,
+.admin-state--refunded,
+.admin-state--voided {
+  color: #1a7f37;
+}
+
+.admin-state--failed,
+.admin-state--exhausted {
+  color: var(--danger);
+}
+
+.admin-state--pending,
+.admin-state--processing,
+.admin-state--scheduled,
+.admin-state--retry_scheduled {
+  color: var(--warning-text);
+}

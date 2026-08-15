@@ -3,7 +3,10 @@ import react from "@vitejs/plugin-react";
 
 export default defineConfig({
   plugins: [react()],
-  base: "/unifiedcheckout/",
+  // Root-relative so the same built assets can be served under both
+  // /unifiedcheckout/ and /__simulator/dashboard/ by the server (see
+  // apps/server/src/checkout/static-routes.ts).
+  base: "/",
   build: {
     outDir: "dist",
     emptyOutDir: true,

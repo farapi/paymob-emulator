@@ -15,6 +15,7 @@ export function requireAdmin(ctx: AuthContext) {
         "x-csrf-token": req.headers["x-csrf-token"] as string | undefined,
       },
       sessionToken,
+      req.method,
     );
     if (!result.ok) {
       return reply

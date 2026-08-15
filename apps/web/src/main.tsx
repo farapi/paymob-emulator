@@ -12,7 +12,7 @@ if (!rootElement) throw new Error("missing #root element");
 ReactDOM.createRoot(rootElement).render(
   <React.StrictMode>
     <QueryClientProvider client={queryClient}>
-      <BrowserRouter basename="/unifiedcheckout">
+      <BrowserRouter>
         <App />
       </BrowserRouter>
     </QueryClientProvider>
