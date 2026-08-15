@@ -11,6 +11,7 @@ import { computeReadiness } from "./core/readiness.js";
 import { readRuntimeEnv } from "./config/env.js";
 import { ensureCredentialsSeeded } from "./core/credentials.js";
 import { syncIntegrations } from "./database/integrations-repository.js";
+import { syncBuiltInScenarios } from "./core/scenario-registry.js";
 
 async function main() {
   const runtime = readRuntimeEnv(process.env);
@@ -36,6 +37,7 @@ async function main() {
     nowIso,
   );
   syncIntegrations(opened.db, config.values.integrations, config.values.features.enableLegacy, nowIso);
+  syncBuiltInScenarios(opened.db, nowIso);
 
   const clock = loadOrInitClock(
     opened.db,

@@ -22,7 +22,7 @@ export type ScenarioSelectionOutcome =
 export interface ScenarioSelectionInput {
   cardNumber: string;
   cardholderName: string;
-  specialReference?: string;
+  specialReference?: string | undefined;
 }
 
 export function selectCheckoutScenario(

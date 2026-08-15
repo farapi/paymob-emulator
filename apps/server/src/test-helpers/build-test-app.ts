@@ -5,6 +5,7 @@ import { runMigrations } from "../database/migrate.js";
 import { ensureIdCounters } from "../core/id-allocator.js";
 import { ensureCredentialsSeeded } from "../core/credentials.js";
 import { syncIntegrations } from "../database/integrations-repository.js";
+import { syncBuiltInScenarios } from "../core/scenario-registry.js";
 import { RealClock, ManualClock, type Clock } from "../core/clock.js";
 import { createLogger } from "../core/logger.js";
 
@@ -42,6 +43,7 @@ export function buildTestApp(opts: BuildTestAppOptions = {}): TestApp {
     nowIso,
   );
   syncIntegrations(opened.db, config.values.integrations, config.values.features.enableLegacy, nowIso);
+  syncBuiltInScenarios(opened.db, nowIso);
 
   const clock: Clock = opts.manualStartMs !== undefined ? new ManualClock(opts.manualStartMs) : new RealClock();
 
