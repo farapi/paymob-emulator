@@ -39,6 +39,7 @@ export async function fetchElement(publicKey: string, clientSecret: string): Pro
 export interface OpenSessionResponse {
   sessionId: string;
   ticket: string;
+  currentStatus: "success" | "failed" | "pending" | "cancelled" | "expired" | null;
 }
 
 export async function openCheckoutSession(clientSecret: string): Promise<OpenSessionResponse> {

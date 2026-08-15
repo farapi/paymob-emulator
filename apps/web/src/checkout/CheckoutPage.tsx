@@ -4,7 +4,16 @@ import { BUILT_IN_CARD_CVV, BUILT_IN_CARD_EXPIRY } from "@paymob-simulator/contr
 import { ackBrowserEvent, ApiError, eventsUrl, fetchElement, openCheckoutSession, submitCheckout } from "./api.js";
 import { ScenarioCatalog } from "./ScenarioCatalog.js";
 
-type CheckoutStatus = "loading" | "form" | "processing" | "pending" | "success" | "failed" | "cancelled" | "error";
+type CheckoutStatus =
+  | "loading"
+  | "form"
+  | "processing"
+  | "pending"
+  | "success"
+  | "failed"
+  | "cancelled"
+  | "expired"
+  | "error";
 
 interface BrowserActionEvent {
   actionId: string | null;
@@ -58,9 +67,12 @@ export function CheckoutPage() {
       return;
     }
     if (elementQuery.data && status === "loading") {
-      setStatus("form");
       void openCheckoutSession(clientSecret).then((session) => {
         sessionRef.current = session;
+        // Reopening an already-submitted checkout renders the current
+        // outcome directly rather than the form again (spec 10.4 step 5) --
+        // a fresh session has no events of its own to replay a stale redirect.
+        setStatus(session.currentStatus ?? "form");
       });
     }
   }, [elementQuery.isError, elementQuery.error, elementQuery.data, publicKey, clientSecret, status]);
@@ -225,7 +237,11 @@ export function CheckoutPage() {
             </form>
           )}
 
-          {(status === "pending" || status === "success" || status === "failed" || status === "cancelled") && (
+          {(status === "pending" ||
+            status === "success" ||
+            status === "failed" ||
+            status === "cancelled" ||
+            status === "expired") && (
             <div className="checkout__result" role="status">
               <p>Payment status: {status}</p>
               {displayMessage && <p>{displayMessage}</p>}

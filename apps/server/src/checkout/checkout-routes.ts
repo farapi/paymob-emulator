@@ -13,7 +13,10 @@ import {
   verifyTicket,
 } from "../core/checkout-sessions-repository.js";
 import { acknowledgeBrowserEvent, browserEventBus, listBrowserEventsAfter, type BrowserEventRow } from "../core/browser-events.js";
-import type { ClockMode } from "@paymob-simulator/contracts";
+import { transactions } from "../database/schema.js";
+import { eq } from "drizzle-orm";
+import { mapTransactionStateToBrowserStatus } from "../core/browser-status.js";
+import type { ClockMode, InternalState } from "@paymob-simulator/contracts";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type AnyFastifyInstance = import("fastify").FastifyInstance<any, any, any, any, any>;
@@ -54,14 +57,24 @@ export function registerCheckoutRoutes(app: AnyFastifyInstance, deps: CheckoutRo
     // Every render creates its own session/ticket (spec 10.4): two tabs for
     // the same intention each get their own session and both receive
     // published browser actions, but only the first atomic submit creates a
-    // transaction.
+    // transaction. A fresh session has no browser_events of its own, so
+    // reopening never replays an old navigation (10.4 step 5) -- instead,
+    // if the intention was already submitted, we resolve and return the
+    // transaction's current outcome directly here.
     const expiresAt = new Date(now.getTime() + SESSION_TTL_MS);
     const created = createCheckoutSession(
       deps.db,
       { kind: "modern", intentionId: intention.id, expiresAt },
       now,
     );
-    return reply.code(201).send({ sessionId: created.id, ticket: created.ticket });
+
+    let currentStatus: string | null = null;
+    if (intention.status !== "intended") {
+      const txn = deps.db.select().from(transactions).where(eq(transactions.intentionId, intention.id)).get();
+      currentStatus = txn ? mapTransactionStateToBrowserStatus(txn.state as InternalState) : null;
+    }
+
+    return reply.code(201).send({ sessionId: created.id, ticket: created.ticket, currentStatus });
   });
 
   const submitBodySchema = z.object({
@@ -123,11 +136,25 @@ export function registerCheckoutRoutes(app: AnyFastifyInstance, deps: CheckoutRo
 
     const afterCursor = Number.parseInt(lastEventIdHeader ?? after ?? "0", 10) || 0;
 
+    // Fastify must not manage this response's lifecycle -- without hijack(),
+    // the handler's returning promise resolves almost immediately (there's
+    // nothing left to await after registering listeners), and Fastify then
+    // tries to finalize a response that was never sent through its own
+    // reply.send() path, leaving the connection in a state that never
+    // flushes further writes to the client.
+    reply.hijack();
+
     reply.raw.writeHead(200, {
       "content-type": "text/event-stream",
       "cache-control": "no-cache",
       connection: "keep-alive",
     });
+    // writeHead() alone only buffers headers -- Node's http module doesn't
+    // put them on the wire until the first write()/end(), which for an SSE
+    // stream with an empty backlog might not happen for up to
+    // HEARTBEAT_INTERVAL_MS. A client (EventSource, fetch) waiting on
+    // response headers would hang until then. Force an immediate flush.
+    reply.raw.flushHeaders();
 
     const backlog = listBrowserEventsAfter(deps.db, sessionId, afterCursor);
     for (const event of backlog) reply.raw.write(formatSseEvent(event));
