@@ -7,6 +7,7 @@ coverage/
 .env
 .env.local
 /data/
+.data/
 *.sqlite
 *.sqlite-shm
 *.sqlite-wal
@@ -16,3 +17,9 @@ test-results/
 apps/web/dist/
 apps/server/dist/
 packages/*/dist/
+*.tsbuildinfo
+pnpm-debug.log*
+npm-debug.log*
+.vscode/
+.idea/
+*.swp

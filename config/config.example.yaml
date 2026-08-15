@@ -54,4 +54,4 @@ security:
   adminToken: null
 
 clock:
-  mode: real
+  mode: manual

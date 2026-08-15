@@ -1,0 +1,10 @@
+{
+  "name": "paymob-simulator-demo-merchant",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Minimal fixture backend that proves the emulator's key behaviors end-to-end: browser-redirect/webhook independence, delayed success via manual time, missing-webhook inquiry recovery, and restart persistence. No dependency on the simulator's internal packages -- talks to it only through documented Paymob-compatible HTTP endpoints.",
+  "scripts": {
+    "start": "node server.mjs"
+  }
+}

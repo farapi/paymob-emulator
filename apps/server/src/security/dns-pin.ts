@@ -15,17 +15,27 @@ export interface DnsResolver {
   resolve6(hostname: string): Promise<string[]>;
 }
 
+// dns.lookup() (getaddrinfo) rather than dns.resolve4/resolve6 (raw DNS
+// queries): callback targets are frequently "localhost", Docker Compose
+// service names, or other /etc/hosts-only names that a real DNS query
+// cannot resolve at all -- discovered by the demo merchant's webhook
+// delivery to http://localhost:PORT failing with DNS_RESOLUTION_FAILED
+// even though the host was perfectly reachable. A single lookup with
+// `all: true` still satisfies "resolve once" -- both families come back
+// from that one call, so there is still no second lookup at connect time.
 export const nodeDnsResolver: DnsResolver = {
   async resolve4(hostname) {
     try {
-      return await dnsPromises.resolve4(hostname);
+      const results = await dnsPromises.lookup(hostname, { all: true, verbatim: true });
+      return results.filter((r) => r.family === 4).map((r) => r.address);
     } catch {
       return [];
     }
   },
   async resolve6(hostname) {
     try {
-      return await dnsPromises.resolve6(hostname);
+      const results = await dnsPromises.lookup(hostname, { all: true, verbatim: true });
+      return results.filter((r) => r.family === 6).map((r) => r.address);
     } catch {
       return [];
     }

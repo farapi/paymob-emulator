@@ -1,15 +1,21 @@
 services:
   paymob-simulator:
-    image: ghcr.io/OWNER/paymob-simulator:latest
+    # Replace "your-org" with your actual GHCR namespace once published;
+    # image tags must be lowercase, unlike the walkthrough in section 19.1.
+    image: ghcr.io/your-org/paymob-simulator:latest
     build: .
     ports:
-      - "127.0.0.1:8080:8080"
+      - "127.0.0.1:${HOST_SIM_PORT:-8080}:8080"
     volumes:
       - paymob-simulator-data:/data
       - ./config/config.example.yaml:/config/config.yaml:ro
     environment:
       SIM_CONFIG_FILE: /config/config.yaml
-      SIM_PUBLIC_URL: http://localhost:8080
+      SIM_PUBLIC_URL: http://localhost:${HOST_SIM_PORT:-8080}
+      # Headless admin auth for CI / the release smoke test (spec 8.4 step 5):
+      # never required for normal use, where the dashboard's bootstrap flow
+      # is used instead. Change this for anything beyond local testing.
+      SIM_ADMIN_TOKEN: ${SIM_ADMIN_TOKEN:-ci_smoke_test_admin_token}
     extra_hosts:
       - "host.docker.internal:host-gateway"
     healthcheck:
@@ -21,10 +27,19 @@ services:
   demo-merchant:
     build: ./demo-merchant
     ports:
-      - "127.0.0.1:3000:3000"
+      - "127.0.0.1:${HOST_MERCHANT_PORT:-3000}:3000"
+    volumes:
+      - demo-merchant-data:/app/data
     environment:
+      PORT: "3000"
+      # Container-to-container: how the simulator's webhook delivery and this
+      # service's own outbound calls reach each other by Compose service name.
       PAYMOB_BASE_URL: http://paymob-simulator:8080
-      PAYMOB_PUBLIC_BASE_URL: http://localhost:8080
+      SELF_BASE_URL: http://demo-merchant:3000
+      # Browser-facing: how the host browser reaches each service. Must match
+      # whatever host ports are actually published above.
+      PAYMOB_PUBLIC_BASE_URL: http://localhost:${HOST_SIM_PORT:-8080}
+      SELF_PUBLIC_BASE_URL: http://localhost:${HOST_MERCHANT_PORT:-3000}
       PAYMOB_SECRET_KEY: sk_sim_local
       PAYMOB_PUBLIC_KEY: pk_sim_local
       PAYMOB_API_KEY: api_sim_local
@@ -35,3 +50,4 @@ services:
 
 volumes:
   paymob-simulator-data:
+  demo-merchant-data:
