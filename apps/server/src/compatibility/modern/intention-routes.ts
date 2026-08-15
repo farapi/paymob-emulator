@@ -22,6 +22,8 @@ import {
   updateIntention,
   type IntentionRow,
 } from "../../core/intention-service.js";
+import { findAndConsumeApiFaultExpectation } from "../../core/expectations-service.js";
+import { applyApiFault, type ApiFaultResponse } from "../../core/api-fault.js";
 import type { AllowlistEntry } from "../../security/allowlist.js";
 
 export interface ModernRouteDeps {
@@ -59,8 +61,24 @@ function checkoutUrlFor(deps: ModernRouteDeps, clientSecret: string): string {
   return `${deps.publicUrl}/unifiedcheckout/?publicKey=${encodeURIComponent(publicKey)}&clientSecret=${encodeURIComponent(clientSecret)}`;
 }
 
+function extractSpecialReference(body: unknown): string | undefined {
+  const value = (body as Record<string, unknown> | null)?.special_reference;
+  return typeof value === "string" ? value : undefined;
+}
+
 export function registerModernIntentionRoutes(app: AnyFastifyInstance, deps: ModernRouteDeps): void {
   app.post("/v1/intention/", async (req, reply) => {
+    const fault = findAndConsumeApiFaultExpectation(
+      deps.db,
+      deps.clock,
+      "intention.create",
+      extractSpecialReference(req.body),
+    );
+    if (fault) {
+      const handled = await applyApiFault(reply, fault.responseJson as ApiFaultResponse);
+      if (handled) return;
+    }
+
     const token = extractBearerToken(req.headers.authorization);
     if (!token || !verifyActiveCredential(deps.db, "secret_key", token)) {
       return reply.code(401).send(incorrectCredentialsError);
@@ -82,12 +100,23 @@ export function registerModernIntentionRoutes(app: AnyFastifyInstance, deps: Mod
   });
 
   app.put("/v1/intention/:clientSecret", async (req, reply) => {
+    const { clientSecret } = req.params as { clientSecret: string };
+
+    // Match against the intention's existing special_reference (the patch
+    // body need not include it) as well as any override the patch supplies.
+    const existing = findIntentionByClientSecret(deps.db, clientSecret);
+    const specialReference = extractSpecialReference(req.body) ?? existing?.specialReference ?? undefined;
+    const fault = findAndConsumeApiFaultExpectation(deps.db, deps.clock, "intention.update", specialReference);
+    if (fault) {
+      const handled = await applyApiFault(reply, fault.responseJson as ApiFaultResponse);
+      if (handled) return;
+    }
+
     const token = extractBearerToken(req.headers.authorization);
     if (!token || !verifyActiveCredential(deps.db, "secret_key", token)) {
       return reply.code(401).send(incorrectCredentialsError);
     }
 
-    const { clientSecret } = req.params as { clientSecret: string };
     const rawPatch = req.body as Record<string, unknown>;
 
     const result = updateIntention({
