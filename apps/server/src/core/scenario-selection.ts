@@ -5,7 +5,11 @@ import { consumeExpectation, findActiveCheckoutExpectation } from "./expectation
 
 // Scenario selection precedence (spec section 11.5).
 
-export type ScenarioSelectionSource = "expectation" | "generic_alias" | "card_registry";
+export type ScenarioSelectionSource =
+  | "expectation"
+  | "generic_alias"
+  | "card_registry"
+  | "control_plane_complete";
 
 export interface ScenarioSelectionResult {
   scenarioId: string;

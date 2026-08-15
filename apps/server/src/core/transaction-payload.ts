@@ -9,17 +9,75 @@ export interface BuildTransactionObjOptions {
   overrideCreatedAt?: Date;
 }
 
+interface ProjectedPaymobFlagsLike {
+  pending: boolean;
+  success: boolean;
+  errorOccured: boolean;
+  message: string;
+  isAuth: boolean;
+  isCapture: boolean;
+  isStandalonePayment: boolean;
+  isVoided: boolean;
+  isRefunded: boolean;
+  isCaptured: boolean;
+  isRefund: boolean;
+  isVoid: boolean;
+  refundedAmountCents: number;
+  capturedAmount: number;
+}
+
+const CHILD_FLAG_BASE = {
+  pending: false,
+  success: true,
+  errorOccured: false,
+  isAuth: false,
+  isCapture: false,
+  isStandalonePayment: false,
+  isVoided: false,
+  isRefunded: false,
+  isCaptured: false,
+  isRefund: false,
+  isVoid: false,
+  refundedAmountCents: 0,
+  capturedAmount: 0,
+} as const;
+
+/**
+ * Financial-operation child transaction flags (spec 13.4). A capture/refund/
+ * void child is not just "a transaction in state succeeded" -- it carries
+ * its own fixed flag set (only the operation's own flag is true; the
+ * original transaction's aggregate flags like is_refunded/is_captured never
+ * appear on the child) regardless of the child row's `state` column, which
+ * only exists to satisfy the internal state machine (13.1-13.2).
+ */
+function projectChildOperationFlags(operationType: string, message: string): ProjectedPaymobFlagsLike {
+  switch (operationType) {
+    case "capture":
+      return { ...CHILD_FLAG_BASE, isCapture: true, message };
+    case "refund":
+      return { ...CHILD_FLAG_BASE, isRefund: true, message };
+    case "void":
+      return { ...CHILD_FLAG_BASE, isVoid: true, message };
+    default:
+      throw new Error(`unknown operation type "${operationType}"`);
+  }
+}
+
 /**
  * Builds the frozen `obj` payload shape (spec 14.2) from a persisted
  * transaction row. This is the single place that projects internal state to
- * Paymob flags -- callers must not recompute flags themselves (13.3).
+ * Paymob flags -- callers must not recompute flags themselves (13.3). A row
+ * with `operationType` set (a capture/refund/void child, 13.4) uses the
+ * fixed child flag set instead of the normal state projection.
  */
 export function buildTransactionObj(row: TransactionRow, opts: BuildTransactionObjOptions = {}): TransactionObj {
-  const flags = projectPaymobFlags(row.state as InternalState, {
-    originalAmountCents: row.amountCents,
-    refundedAmountCents: row.refundedAmountCents,
-    declineMessage: row.declineMessage ?? undefined,
-  });
+  const flags: ProjectedPaymobFlagsLike = row.operationType
+    ? projectChildOperationFlags(row.operationType, row.declineMessage ?? "")
+    : projectPaymobFlags(row.state as InternalState, {
+        originalAmountCents: row.amountCents,
+        refundedAmountCents: row.refundedAmountCents,
+        declineMessage: row.declineMessage ?? undefined,
+      });
 
   const createdAt = formatCallbackTimestamp(opts.overrideCreatedAt ?? new Date(row.createdAt));
 

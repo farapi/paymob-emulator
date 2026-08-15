@@ -66,6 +66,12 @@ async function main() {
   const webhookAllowlist = parseAllowlist(config.values.security.allowedWebhookHosts);
   const retryIntervalsMs = config.values.delivery.retryIntervals.map((s) => parseDuration(s));
   const requestTimeoutMs = parseDuration(config.values.delivery.requestTimeout);
+  const retryPolicy = {
+    retryOnTransportError: config.values.delivery.retryOnTransportError,
+    retryOnStatuses: config.values.delivery.retryOnStatuses,
+    intervalsMs: retryIntervalsMs,
+    maxAttempts: config.values.delivery.maxAttempts,
+  };
 
   const scheduler = new SchedulerRunner({
     db: opened.db,
@@ -79,12 +85,7 @@ async function main() {
     allowPrivateNetworks: config.values.security.allowPrivateNetworks,
     resolver: nodeDnsResolver,
     requestTimeoutMs,
-    retryPolicy: {
-      retryOnTransportError: config.values.delivery.retryOnTransportError,
-      retryOnStatuses: config.values.delivery.retryOnStatuses,
-      intervalsMs: retryIntervalsMs,
-      maxAttempts: config.values.delivery.maxAttempts,
-    },
+    retryPolicy,
     defaultRedirectMode: config.values.defaults.redirectMode,
   });
   scheduler.start();
@@ -98,6 +99,9 @@ async function main() {
     logger,
     scheduler,
     adminTokenEnv: process.env.SIM_ADMIN_TOKEN,
+    resolver: nodeDnsResolver,
+    retryPolicy,
+    requestTimeoutMs,
     getReadiness: () =>
       computeReadiness({
         db: opened.db,

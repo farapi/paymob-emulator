@@ -12,7 +12,14 @@ import { registerCheckoutRoutes } from "./checkout/checkout-routes.js";
 import { registerStaticCheckoutRoutes } from "./checkout/static-routes.js";
 import { registerAuthRoutes } from "./control-plane/auth-routes.js";
 import { registerClockRoutes } from "./control-plane/clock-routes.js";
+import { registerExpectationRoutes } from "./control-plane/expectations-routes.js";
+import { registerIntentionsControlRoutes } from "./control-plane/intentions-routes.js";
+import { registerTransactionsControlRoutes } from "./control-plane/transactions-routes.js";
+import { registerDeliveriesControlRoutes } from "./control-plane/deliveries-routes.js";
+import { registerLegacyOperationsRoutes } from "./compatibility/legacy/operations-routes.js";
 import type { SchedulerRunner } from "./core/scheduler-runner.js";
+import type { RetryPolicy } from "./core/webhook-delivery.js";
+import type { DnsResolver } from "./security/dns-pin.js";
 
 export interface ReadinessState {
   ready: boolean;
@@ -29,6 +36,9 @@ export interface AppDependencies {
   getReadiness: () => ReadinessState;
   scheduler: SchedulerRunner;
   adminTokenEnv: string | undefined;
+  resolver: DnsResolver;
+  retryPolicy: RetryPolicy;
+  requestTimeoutMs: number;
 }
 
 export function buildApp(deps: AppDependencies) {
@@ -92,6 +102,48 @@ export function buildApp(deps: AppDependencies) {
     secureCookies: deps.config.values.server.publicUrl.startsWith("https://"),
   });
   registerClockRoutes(app, { auth: authContext, clock: deps.clock, scheduler: deps.scheduler });
+
+  registerExpectationRoutes(app, { db: deps.db, clock: deps.clock, auth: authContext });
+
+  registerIntentionsControlRoutes(app, {
+    db: deps.db,
+    raw: deps.raw,
+    clock: deps.clock,
+    clockMode: deps.config.values.clock.mode,
+    defaultIntegrationId,
+    defaultScenarioId: deps.config.values.defaults.scenario,
+    auth: authContext,
+  });
+
+  registerTransactionsControlRoutes(app, {
+    db: deps.db,
+    raw: deps.raw,
+    clock: deps.clock,
+    auth: authContext,
+    allowlist: webhookAllowlist,
+    allowPrivateNetworks: deps.config.values.security.allowPrivateNetworks,
+    resolver: deps.resolver,
+    requestTimeoutMs: deps.requestTimeoutMs,
+    retryPolicy: deps.retryPolicy,
+  });
+
+  registerDeliveriesControlRoutes(app, {
+    db: deps.db,
+    clock: deps.clock,
+    auth: authContext,
+    scheduler: deps.scheduler,
+  });
+
+  registerLegacyOperationsRoutes(app, {
+    db: deps.db,
+    raw: deps.raw,
+    clock: deps.clock,
+    allowlist: webhookAllowlist,
+    allowPrivateNetworks: deps.config.values.security.allowPrivateNetworks,
+    resolver: deps.resolver,
+    requestTimeoutMs: deps.requestTimeoutMs,
+    retryPolicy: deps.retryPolicy,
+  });
 
   registerStaticCheckoutRoutes(app, { allowedFrameAncestors: deps.config.values.browser.allowedFrameAncestors });
 

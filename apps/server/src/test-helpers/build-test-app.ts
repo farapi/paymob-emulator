@@ -58,6 +58,14 @@ export function buildTestApp(opts: BuildTestAppOptions = {}): TestApp {
   syncBuiltInScenarios(opened.db, nowIso);
 
   const clock: Clock = opts.manualStartMs !== undefined ? new ManualClock(opts.manualStartMs) : new RealClock();
+  const resolver = opts.resolver ?? noopResolver;
+  const retryPolicy = {
+    retryOnTransportError: config.values.delivery.retryOnTransportError,
+    retryOnStatuses: config.values.delivery.retryOnStatuses,
+    intervalsMs: config.values.delivery.retryIntervals.map((s) => parseDuration(s)),
+    maxAttempts: config.values.delivery.maxAttempts,
+  };
+  const requestTimeoutMs = parseDuration(config.values.delivery.requestTimeout);
 
   const scheduler = new SchedulerRunner({
     db: opened.db,
@@ -69,14 +77,9 @@ export function buildTestApp(opts: BuildTestAppOptions = {}): TestApp {
       getCredentialByVersion(opened.db, "hmac_secret", version) ?? getActiveCredential(opened.db, "hmac_secret").value,
     allowlist: parseAllowlist(config.values.security.allowedWebhookHosts),
     allowPrivateNetworks: config.values.security.allowPrivateNetworks,
-    resolver: opts.resolver ?? noopResolver,
-    requestTimeoutMs: parseDuration(config.values.delivery.requestTimeout),
-    retryPolicy: {
-      retryOnTransportError: config.values.delivery.retryOnTransportError,
-      retryOnStatuses: config.values.delivery.retryOnStatuses,
-      intervalsMs: config.values.delivery.retryIntervals.map((s) => parseDuration(s)),
-      maxAttempts: config.values.delivery.maxAttempts,
-    },
+    resolver,
+    requestTimeoutMs,
+    retryPolicy,
     defaultRedirectMode: config.values.defaults.redirectMode,
   });
 
@@ -89,6 +92,9 @@ export function buildTestApp(opts: BuildTestAppOptions = {}): TestApp {
     logger: createLogger("silent"),
     scheduler,
     adminTokenEnv: opts.adminTokenEnv,
+    resolver,
+    retryPolicy,
+    requestTimeoutMs,
     getReadiness: () => ({ ready: opts.ready ?? true }),
   });
 
